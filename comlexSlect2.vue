@@ -19,11 +19,11 @@
 			<div class="select-box">
 				<div class="primary-menu select-menu-list">
 					<ul>
-						<el-popover trigger="hover" :append-to-body="false" ref="subSelectPopover" v-for="(item,ind) in selectMenuList" :key="item.type" popoer-class="simulate-select-sub-popover" placement="right">
+						<el-popover  trigger="hover" :enterable='true' :append-to-body="false" ref="subSelectPopover" v-for="(item,ind) in selectMenuList" :key="item.type" popoer-class="simulate-select-sub-popover" placement="right">
 							<li slot="reference" class="pull-left" :class="{'is-active':item.isAct}">
 								<el-checkbox :indeterminate="item.isAll" v-model="item.isAct" @change="selectMenuHandle(item,ind)">{{item.desc}}</el-checkbox>
 							</li>
-							<div class="simulate-select-subMenu-content">
+							<div class="simulate-select-subMenu-content" v-cloak>
 								<div class="simulate-select-subMenu-content-head">
 									<el-checkbox :indeterminate="item.isAll" v-model="item.isAct" @change="selectMenuHandle(item,ind)">{{item.desc}} <span class="text-primary" v-show="item.menu&&item.menu.length">(全选)</span></el-checkbox>
 								</div>
@@ -51,7 +51,6 @@
 		data() {
 			return {
 				selectMenuList: [], //合成数据
-				tipDom: null, //tips组件
 				selectStr: [],
 				selectPopoverVisible:false,
 			}
@@ -84,28 +83,31 @@
 				return(allCheck === 'all') ? 'el-icon-check' : 'el-icon-minus';
 			},
 		},
+		watch:{
+			selectType(val){
+				val && this.setList(this.menuList,val);
+			}
+		},
 		methods: {
-			showTips() {
-				this.selectStrTips && this.tipDom.showTip();
-			},
 			setList(menuList, selectType) {
 				if(!(menuList && menuList.length)) {
 					return this.selectMenuList = [];
 				}
 				this.selectMenuList = menuList.map(item => {
 					let itemCache = JSON.parse(JSON.stringify(item));
-					let isAll = false; //子菜单是否全选
+					let isAll = false;
 					let isAct = true;
 					if(itemCache.menu && itemCache.menu.length) {
+						let checkCount = 0;
 						itemCache.menu.forEach(its => {
 							its.isAct = selectType.includes(its.type);
 							if(its.isAct) {
-								isAll = true;
+								checkCount++;
 							} else {
 								isAct = false;
 							}
 						});
-
+						isAll = checkCount!==0 && checkCount !== itemCache.menu.length;
 					} else {
 						isAct = selectType.includes(itemCache.type);
 						isAll = false;
@@ -146,12 +148,13 @@
 			},
 			showSelect() {
 				this.setList(this.menuList, this.selectType);
+				
 			},
 			hideSelect() {
 
 			},
 			selectMenuHandle(item, ind) {
-				let cache = this.selectMenuList.concat();
+				let cache = this.selectMenuList;
 				let isAct = item.isAct;
 				let isMenu = item.menu && item.menu.length;
 				cache[ind].isAll = false;
